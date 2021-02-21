@@ -1,0 +1,71 @@
+#PAKET
+library(caret)
+library(devtools)
+library(e1071) # ??? package SVR
+library(wavelets)
+library(forecast)
+library(tseries)
+library(xts)
+require (quantmod)
+library(dplyr)
+library(Metrics)
+
+#############
+#. MODEL SVR #training SVR
+#datakopi
+xdatw1<-read.table("W:/Kuliah/Khusus TESIS VEC VAR/jurnal/robusta1.txt", header = TRUE,fill=TRUE)
+xdatw1
+robusta=xdatw1$robusta
+futures=xdatw1$futures
+positif=xdatw1$positif
+kurs=xdatw1$kurs
+acf(robusta,lag.max=55)
+acf
+
+library(tidyverse)
+#xdatw1=data.frame(w1.5)
+## Tuning SVR model by varying values of maximum allowable error and cost parameter
+#Tune the SVM model
+set.seed(1)
+OptModelsvm.w1=tune(svm, xdatw1, robusta, kernel = "radial", 
+                    ranges=list(epsilon=seq(0,1,0.1), coef.0=0:2, gamma = c(0.5,1,2), cost=1:10))
+#Print optimum value of parameters
+print(OptModelsvm.w1) 
+summary(OptModelsvm.w1)
+## Select the best model out of 914 trained models and compute RMSE
+#Find out the best model
+BstModel.w1=OptModelsvm.w1$best.model
+BstModel.w1
+
+
+
+#parameter optimal
+set.seed(1)
+OptModelsvm.w1a=tune(svm, xdatw1, robusta, kernel = "sigmoid", 
+                     ranges=list(epsilon=seq(0.9,1,0.01), coef.0=0, gamma = 0.5, cost=1))
+print(OptModelsvm.w1a) 
+summary(OptModelsvm.w1a)
+BstModel.w1a=OptModelsvm.w1a$best.model
+BstModel.w1a
+
+#Regression with SVM
+set.seed(1)
+modelsvm.w1 = svm(xdatw1, robusta, kernel = "sigmoid", epsilon=1, coef.0=0, gamma=0.5, cost=1)
+print(modelsvm.w1)
+#Predict using best model SVM regression data training
+predYsvm.w1 = predict(modelsvm.w1, xdatw1)
+predYsvm.w1
+
+#Calculate RMSE of the best model 
+RMSEBst.w1=rmse(predYsvm.w1, robusta)
+RMSEBst.w1  
+r2Bst.w1<-postResample(predYsvm.w1, robusta)
+r2Bst.w1    
+
+##Calculate parameters of the Best SVR model
+#Find value of W
+W.w1 = t(modelsvm.w1$coefs) %*% modelsvm.w1$SV
+W.w1   
+#Find value of b
+b.w1 = modelsvm.w1$rho
+b.w1   
